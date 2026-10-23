@@ -56,7 +56,8 @@ Tap **Graph** at the top of the sidebar to see all your notes as a web, like Obs
 - Drag the background to move around, and scroll or pinch to zoom. **Fit** brings everything back into view.
 - Drag a dot to pull it around. Point at or press a dot to highlight what it's connected to.
 - Tap a dot to open that note. **Back** returns you to the graph.
-- **Join notes by area** adds faint dashed lines between notes in the same area, so areas form clusters even without links.
+- **Join by area** adds dashed lines between notes in the same area, so areas form clusters even without links. If none of your notes are in an area yet, it says so.
+- **Join similar notes** adds dotted blue lines between notes that share a lot of words, which helps when your notes have few links.
 
 ## Automatic organizing
 

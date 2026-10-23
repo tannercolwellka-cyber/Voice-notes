@@ -406,8 +406,15 @@ $('go-record').addEventListener('click', () => {
 // ---------- graph ----------
 
 function graphData() {
-  const g = buildGraph(notes, { byArea: $('graph-areas').checked });
-  $('graph-empty').hidden = g.edges.length > 0;
+  const byArea = $('graph-areas').checked;
+  const similar = $('graph-similar').checked ? auto.similarPairs(notes) : [];
+  const g = buildGraph(notes, { byArea, similar });
+  const noAreas = !notes.some(n => n.areas?.length);
+  // Say why nothing is joined instead of quietly showing loose dots.
+  $('graph-empty').textContent = byArea && noAreas
+    ? 'None of your notes are in an area yet, so there’s nothing to join by area. Add some from the Areas tab, or try “Join similar notes”.'
+    : g.edges.length ? '' : 'No links yet. Link notes with [[their title]], or turn on “Join similar notes”.';
+  $('graph-empty').hidden = !$('graph-empty').textContent;
   $('graph-legend').replaceChildren(...g.legend.map(({ name, color }) => {
     const span = document.createElement('span');
     span.innerHTML = '<i></i>';
@@ -438,11 +445,13 @@ function hideGraph() {
 $('go-graph').addEventListener('click', openGraph);
 $('graph-close').addEventListener('click', () => { fromGraph = false; hideGraph(); closePanel(); });
 $('graph-fit').addEventListener('click', () => graph?.fit());
-$('graph-areas').addEventListener('change', () => {
-  try { localStorage.setItem('voice-notes-graph-areas', $('graph-areas').checked ? '1' : ''); } catch {}
-  graph?.update(graphData());
-});
-try { $('graph-areas').checked = localStorage.getItem('voice-notes-graph-areas') === '1'; } catch {}
+for (const id of ['graph-areas', 'graph-similar']) {
+  $(id).addEventListener('change', () => {
+    try { localStorage.setItem('voice-notes-' + id, $(id).checked ? '1' : ''); } catch {}
+    graph?.update(graphData());
+  });
+  try { $(id).checked = localStorage.getItem('voice-notes-' + id) === '1'; } catch {}
+}
 
 function showView(n) {
   $('note-form').hidden = true;

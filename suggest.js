@@ -149,6 +149,22 @@ export function apply(note, s) {
   return { body, folder: s.folder ?? note.folder, ...(s.areas?.length && { areas }) };
 }
 
+// Pairs of notes that share enough words to count as related, for the graph.
+// Each note joins at most its `perNote` closest matches.
+export function similarPairs(notes, perNote = 2, min = 0.15) {
+  const { docs } = index(notes.filter(n => !n.waiting));
+  const pairs = [];
+  for (const a of docs) {
+    docs.filter(b => b !== a)
+      .map(b => ({ b, score: similarity(a, b) }))
+      .filter(x => x.score >= min)
+      .sort((x, y) => y.score - x.score)
+      .slice(0, perNote)
+      .forEach(({ b }) => pairs.push([a.note.id, b.note.id]));
+  }
+  return pairs;
+}
+
 // Other notes that mention this note's title without linking to it.
 export function unlinkedMentions(note, notes) {
   return notes.filter(n => n.id !== note.id && !n.waiting && mentionAt(n.body, note.title) >= 0);

@@ -6,7 +6,8 @@ import { linksIn, findByTitle } from './library.js';
 const PALETTE = ['#7aa7ff', '#ff9f43', '#4cd4a0', '#ff6b9a', '#b18cff', '#ffd166', '#4dd0e1', '#e57373'];
 
 // Builds dots and lines from notes. With byArea, notes that share an area are tied together too.
-export function buildGraph(notes, { byArea = false } = {}) {
+// similar is a list of [id, id] pairs of notes with a lot of words in common.
+export function buildGraph(notes, { byArea = false, similar = [] } = {}) {
   const real = notes.filter(n => !n.waiting);
   const nodes = real.map(n => ({ id: n.id, note: n, x: 0, y: 0, vx: 0, vy: 0, degree: 0 }));
   const byId = new Map(nodes.map(d => [d.id, d]));
@@ -38,6 +39,9 @@ export function buildGraph(notes, { byArea = false } = {}) {
     for (const members of groups.values()) {
       for (let i = 1; i < members.length; i++) add(members[i - 1], members[i], 'area');
     }
+  }
+  for (const [a, b] of similar) {
+    if (byId.has(a) && byId.has(b)) add(byId.get(a), byId.get(b), 'similar');
   }
   // Colors follow each note's first area.
   const areaNames = [...new Set(real.flatMap(n => n.areas || []))].sort();
@@ -90,7 +94,7 @@ export function mountGraph(canvas, graph, onOpen) {
     for (const e of edges) {
       const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
       const dist = Math.hypot(dx, dy) || 0.01;
-      const want = e.kind === 'area' ? 70 : 55;
+      const want = e.kind === 'link' ? 55 : 70;
       const f = (dist - want) * 0.02;
       e.a.vx += dx / dist * f; e.a.vy += dy / dist * f;
       e.b.vx -= dx / dist * f; e.b.vy -= dy / dist * f;
@@ -139,9 +143,11 @@ export function mountGraph(canvas, graph, onOpen) {
     for (const e of edges) {
       const [x1, y1] = toScreen(e.a), [x2, y2] = toScreen(e.b);
       const lit = near && (e.a === hover || e.b === hover);
-      ctx.strokeStyle = lit ? 'rgba(237,237,237,.75)' : e.kind === 'area' ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.16)';
-      ctx.lineWidth = lit ? 1.6 : 1;
-      if (e.kind === 'area') ctx.setLineDash([3, 4]); else ctx.setLineDash([]);
+      ctx.strokeStyle = lit ? 'rgba(237,237,237,.75)'
+        : e.kind === 'link' ? 'rgba(255,255,255,.28)'
+        : e.kind === 'area' ? 'rgba(255,255,255,.3)' : 'rgba(122,167,255,.5)';
+      ctx.lineWidth = lit ? 1.6 : e.kind === 'link' ? 1 : 1.3;
+      ctx.setLineDash(e.kind === 'area' ? [4, 4] : e.kind === 'similar' ? [2, 3] : []);
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);

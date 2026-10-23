@@ -99,13 +99,14 @@
       <section id="graph-panel" class="graph-panel" hidden>
         <div class="row graph-bar">
           <button id="graph-close" class="secondary">← Back</button>
-          <label class="toggle"><input type="checkbox" id="graph-areas"> Join notes by area</label>
+          <label class="toggle"><input type="checkbox" id="graph-areas"> Join by area</label>
+          <label class="toggle"><input type="checkbox" id="graph-similar"> Join similar notes</label>
           <span class="spacer"></span>
           <button id="graph-fit" class="secondary">Fit</button>
         </div>
         <div class="graph-wrap">
           <canvas id="graph-canvas" aria-label="Graph of your notes and the links between them"></canvas>
-          <p id="graph-empty" class="graph-empty" hidden>No links yet. Link notes with [[their title]], or turn on “Join notes by area”.</p>
+          <p id="graph-empty" class="graph-empty" hidden></p>
           <div id="graph-legend" class="legend"></div>
         </div>
         <p class="meta graph-help">Drag to move around, scroll or pinch to zoom, and tap a dot to open that note.</p>
