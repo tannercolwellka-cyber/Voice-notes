@@ -2,7 +2,7 @@
 
 Speak into your phone and the note shows up on your PC a moment later.
 
-This is step 1 of the plan: capture and sync. Your library, the Apple Notes import, `[[links]]` and automatic sorting come in later steps.
+Steps 1 and 2 of the plan are done: voice capture, sync, and a library with folders, `[[links]]`, Apple Notes import and export. Automatic sorting and linking come in step 3.
 
 ## How it works
 
@@ -18,10 +18,52 @@ This is step 1 of the plan: capture and sync. Your library, the Apple Notes impo
 | `style.css` | How it looks, light and dark |
 | `app.js` | Buttons, the note list, search, editing |
 | `speech.js` | Turns your voice into text |
+| `library.js` | Markdown, `[[links]]`, backlinks, folders, import and export |
 | `store.js` | Saves and loads notes, locally or in Supabase |
 | `config.js` | Your Supabase address and key |
 | `sw.js`, `manifest.webmanifest` | Let it install like an app |
 | `supabase/schema.sql` | Creates the notes table and its privacy rules |
+| `supabase/002_folders.sql` | The step 2 update that adds folders |
+| `vendor/` | Libraries for Markdown, safety cleaning and zip files, kept here so the app works offline |
+
+## Using your library
+
+- **Folders:** open a note, tap **Edit**, and type a folder name like `Work`. Use a slash for folders inside folders, like `Work/Ideas`. The chips above the list filter by folder. New notes, spoken or typed, go into whichever folder you're looking at.
+- **Markdown:** notes can use `**bold**`, `*italics*`, `# Headings`, `- lists`, and `> quotes`. Tap a note to see it formatted, and tap **Edit** to change it.
+- **Links:** type `[[Groceries]]` to link to the note called Groceries. Use `[[Groceries|my list]]` to show different words. A grey dashed link points to a note that doesn't exist yet, and tapping it offers to create it. If you rename a note, links to it are updated everywhere.
+- **Backlinks:** the bottom of each note lists the notes that link to it, under **Linked from**.
+- **Export:** **Export** downloads everything as a zip of `.md` files, one folder per folder. You can open it straight in Obsidian, so your notes are never stuck in this app.
+- **Import:** **Import** takes `.md`, `.txt` and `.html` files, so you can bring in an Obsidian vault or other notes. It also takes the Apple Notes export below. Importing the same notes twice doesn't make copies.
+
+## Bring in your Apple Notes
+
+Apple doesn't let other apps read Apple Notes directly, so you'll build a Shortcut on your iPhone that writes all your notes into one file. You do this once.
+
+1. Open the **Shortcuts** app, tap **+**, and name the shortcut **Export Notes**.
+2. Search for and add **Find Notes**. Leave it as "Find All Notes" with no filters, and make sure **Limit** is off.
+3. Add **Repeat with Each**. It will repeat over the notes.
+4. Inside the repeat, add a **Text** action and type this into it exactly. Each `[...]` is a variable you insert from the bar above the keyboard: tap **Repeat Item**, then tap the blue bubble to pick **Name**, **Folder**, **Creation Date** or **Body**.
+
+   ```
+   ===NOTE===
+   Title: [Repeat Item → Name]
+   Folder: [Repeat Item → Folder]
+   Created: [Repeat Item → Creation Date]
+   ---
+   [Repeat Item → Body]
+   ```
+
+   If **Folder** isn't offered, leave that line out. Your notes will come in without folders, and you can sort them in the app.
+5. After **End Repeat**, add **Combine Text**. Set it to combine **Repeat Results** with **New Lines**.
+6. Add **Save File** and pick a spot in iCloud Drive or On My iPhone.
+7. Tap ▶ to run it. If it asks for permission to read your notes, allow it.
+8. In Voice Notes, tap **Import** and pick the file it saved.
+
+Locked notes are skipped, and images and drawings don't come across, only the text. Your Apple Notes stay as they are.
+
+## Step 2 database update
+
+If you set up Supabase before step 2, run `supabase/002_folders.sql` once the same way you ran `schema.sql`: **SQL Editor → New query**, paste, **Run**. Until you do, saving notes will fail.
 
 ## One-time setup
 

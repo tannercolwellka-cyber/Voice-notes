@@ -1,7 +1,7 @@
 // Where notes are kept. Two versions with the same functions:
 //   localStore - this browser only, for trying the app out
 //   cloudStore - Supabase, so every device sees the same notes
-// A note looks like: { id, title, body, source, created_at, updated_at }
+// A note looks like: { id, title, body, source, folder, created_at, updated_at }
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 
@@ -29,11 +29,17 @@ export const localStore = {
   async list() {
     return readLocal().sort((a, b) => b.created_at.localeCompare(a.created_at));
   },
-  async create({ title, body, source, created_at }) {
+  async create(fields) {
+    return (await this.createMany([fields]))[0];
+  },
+  async createMany(list) {
     const now = new Date().toISOString();
-    const note = { id: crypto.randomUUID(), title, body, source, created_at: created_at || now, updated_at: now };
-    writeLocal([note, ...readLocal()]);
-    return note;
+    const made = list.map(({ title, body, source, folder, created_at }) => ({
+      id: crypto.randomUUID(), title, body, source, folder: folder || '',
+      created_at: created_at || now, updated_at: now,
+    }));
+    writeLocal([...made, ...readLocal()]);
+    return made;
   },
   async update(id, fields) {
     const notes = readLocal().map(n =>
@@ -84,9 +90,14 @@ export const cloudStore = {
     return check(await (await client())
       .from('notes').select('*').order('created_at', { ascending: false }));
   },
-  async create({ title, body, source, created_at }) {
-    return check(await (await client())
-      .from('notes').insert({ title, body, source, created_at }).select().single());
+  async create(fields) {
+    return (await this.createMany([fields]))[0];
+  },
+  async createMany(list) {
+    const rows = list.map(({ title, body, source, folder, created_at }) =>
+      ({ title, body, source, folder: folder || '', ...(created_at && { created_at }) }));
+    // defaultToNull: false lets the database fill in created_at for rows that leave it out.
+    return check(await (await client()).from('notes').insert(rows, { defaultToNull: false }).select());
   },
   async update(id, fields) {
     check(await (await client()).from('notes').update(fields).eq('id', id));

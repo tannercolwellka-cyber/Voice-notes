@@ -1,11 +1,12 @@
--- Run this once in Supabase: SQL Editor > New query > paste > Run.
+-- For a brand new Supabase project. Run this once in Supabase: SQL Editor > New query > paste > Run.
 
 create table public.notes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users on delete cascade,
   title text not null default '',
   body text not null default '',
-  source text not null default 'typed',   -- 'voice' or 'typed'
+  source text not null default 'typed',   -- 'voice', 'typed' or 'import'
+  folder text not null default '',        -- like 'Work/Ideas'; empty means no folder
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

@@ -46,21 +46,45 @@
       </form>
     </div>
 
-    <input id="search" type="search" placeholder="Search notes">
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search notes">
+      <button id="new-note" class="secondary">New</button>
+      <button id="import" class="secondary">Import</button>
+      <button id="export" class="secondary">Export</button>
+      <input id="import-files" type="file" accept=".txt,.md,.markdown,.html,.htm,text/plain" multiple hidden>
+    </div>
+    <nav id="folders" class="folders"></nav>
     <ul id="notes" class="notes"></ul>
   </section>
 
-  <!-- Single note view -->
+  <!-- Single note: read it, or edit it -->
   <dialog id="note-dialog">
-    <form method="dialog" id="note-form">
-      <input id="note-title" placeholder="Title">
-      <textarea id="note-body" rows="12"></textarea>
+    <div id="note-view">
+      <div class="row">
+        <span id="view-folder" class="meta"></span>
+        <span class="spacer"></span>
+        <button id="note-edit" class="secondary">Edit</button>
+        <button id="note-close" class="secondary">Close</button>
+      </div>
+      <h2 id="view-title"></h2>
+      <div id="view-body" class="markdown"></div>
       <p id="note-meta" class="meta"></p>
+      <section id="backlinks" class="backlinks" hidden>
+        <h3>Linked from</h3>
+        <ul></ul>
+      </section>
+    </div>
+
+    <form id="note-form" hidden>
+      <input id="note-title" placeholder="Title">
+      <input id="note-folder" placeholder="Folder (like Work or Work/Ideas)" list="folder-list">
+      <datalist id="folder-list"></datalist>
+      <textarea id="note-body" rows="12" placeholder="Write in Markdown. Link to another note with [[its title]]."></textarea>
       <div class="row">
         <button type="button" id="note-delete" class="danger">Delete</button>
         <span class="spacer"></span>
-        <button value="cancel" class="secondary">Close</button>
-        <button type="button" id="note-save">Save</button>
+        <button type="button" id="note-cancel" class="secondary">Cancel</button>
+        <button type="submit">Save</button>
       </div>
     </form>
   </dialog>
