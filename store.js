@@ -55,7 +55,7 @@ let supabase = null;
 
 async function client() {
   if (!supabase) {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm');
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.89.0/+esm');
     supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
   return supabase;
