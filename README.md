@@ -40,15 +40,15 @@ This runs the app from your own computer, so you can see changes before they go 
 
 ```
 cd %USERPROFILE%\Documents
-git clone https://github.com/tannercolwellka-cyber/voice-notes
+git clone https://github.com/tannercolwellka-cyber/Voice-notes
 ```
 
-The first line moves you into your Documents folder. The second makes a `voice-notes` folder there with all the app files. GitHub may open a window asking you to sign in, because the repo is private.
+The first line moves you into your Documents folder. The second makes a `Voice-notes` folder there with all the app files. GitHub may open a window asking you to sign in, because the repo is private.
 
 **4. Start the app.** Each time you want to run it, open Command Prompt and run:
 
 ```
-cd %USERPROFILE%\Documents\voice-notes
+cd %USERPROFILE%\Documents\Voice-notes
 python -m http.server 8000
 ```
 
