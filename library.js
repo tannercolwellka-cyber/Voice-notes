@@ -49,6 +49,18 @@ export function render(body, notes) {
   return DOMPurify.sanitize(marked.parse(withLinks, { breaks: true }));
 }
 
+// Note text without Markdown symbols, for previews: "**big** [[Gym plan|plan]]" -> "big plan".
+export function plain(body) {
+  return body
+    .replace(LINK, (_, target, label) => (label || target).trim())
+    .replace(/^---[\s\S]*?\n---\n/, '')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
+    .replace(/(\*\*|__|\*|_|~~|`)(?=\S)([^\n]*?\S)\1/g, '$2')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // ---------- folders ----------
 
 export function folders(notes) {

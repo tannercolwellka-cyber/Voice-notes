@@ -142,9 +142,6 @@ async function organize(note) {
 
 function showUndo(text, undo) {
   clearTimeout(undoTimer);
-  // An open note blocks the rest of the page, so show the bar inside it.
-  if ($('note-dialog').open) $('note-view').prepend($('undo-bar'));
-  else $('app').querySelector('.toolbar').before($('undo-bar'));
   $('undo-bar').querySelector('span').textContent = text + '.';
   $('undo-bar').hidden = false;
   $('undo').onclick = async () => {
@@ -188,12 +185,15 @@ function render() {
   $('view-areas').classList.toggle('on', view === 'areas');
   $('notes').hidden = view !== 'list';
   $('areas').hidden = view !== 'areas';
-  if (view === 'areas') return renderAreas(shown);
+  const real = notes.filter(n => !n.waiting).length;
+  $('capture-count').textContent = real ? `${real} note${real === 1 ? '' : 's'} in your library` : '';
+  if (view === 'areas') { renderAreas(shown); return markActive(); }
   $('notes').replaceChildren(...shown.map(n => {
     const li = document.createElement('li');
     li.innerHTML = '<strong></strong><span class="preview"></span><span class="meta"><time></time><span class="folder"></span><span class="area-tag"></span></span>';
     li.querySelector('strong').textContent = n.title;
-    li.querySelector('.preview').textContent = n.body;
+    li.querySelector('.preview').textContent = lib.plain(n.body);
+    li.dataset.id = n.id;
     li.querySelector('time').textContent = n.waiting ? 'Waiting to upload' : when(n.created_at);
     if (folder === null && n.folder) li.querySelector('.folder').textContent = n.folder;
     if (n.areas?.length) li.querySelector('.area-tag').textContent = n.areas.map(a => '#' + a).join(' ');
@@ -205,9 +205,10 @@ function render() {
     li.className = 'empty';
     li.textContent = q ? 'No matching notes.'
       : folder !== null ? 'Nothing in this folder yet.'
-      : 'No notes yet. Tap the button and start talking.';
+      : 'No notes yet. Tap Record a note and start talking.';
     $('notes').append(li);
   }
+  markActive();
 }
 
 // ---------- areas ----------
@@ -260,6 +261,7 @@ function areaSection(name, count, members, real) {
     const li = document.createElement('li');
     li.innerHTML = '<span class="title"></span><span class="also"></span>';
     li.querySelector('.title').textContent = n.title;
+    li.dataset.id = n.id;
     const also = (n.areas || []).filter(a => a !== name);
     if (also.length) li.querySelector('.also').textContent = 'also ' + also.join(', ');
     li.addEventListener('click', () => openNote(n));
@@ -340,8 +342,49 @@ const SOURCE = { voice: 'Spoken', typed: 'Typed', import: 'Imported' };
 function openNote(n) {
   openId = n.id;
   showView(n);
-  if (!$('note-dialog').open) $('note-dialog').showModal();
+  openPanel();
 }
+
+// ---------- layout: sidebar, recorder, note panel ----------
+
+const panelOpen = () => !$('note-panel').hidden;
+
+function openPanel() {
+  $('capture').hidden = true;
+  $('note-panel').hidden = false;
+  closeSidebar();
+  scrollTo(0, 0);
+  markActive();
+}
+
+function closePanel() {
+  $('note-panel').hidden = true;
+  $('capture').hidden = false;
+  $('undo-bar').hidden = true;
+  openId = null;
+  markActive();
+}
+
+function openSidebar() {
+  $('sidebar').classList.add('open');
+  $('scrim').hidden = false;
+}
+
+function closeSidebar() {
+  $('sidebar').classList.remove('open');
+  $('scrim').hidden = true;
+}
+
+function markActive() {
+  for (const el of document.querySelectorAll('[data-id]')) {
+    el.classList.toggle('active', panelOpen() && el.dataset.id === openId);
+  }
+}
+
+$('open-sidebar').addEventListener('click', openSidebar);
+$('close-sidebar').addEventListener('click', closeSidebar);
+$('scrim').addEventListener('click', closeSidebar);
+$('go-record').addEventListener('click', () => { closePanel(); closeSidebar(); });
 
 function showView(n) {
   $('note-form').hidden = true;
@@ -351,9 +394,9 @@ function showView(n) {
   $('view-areas-chips').replaceChildren(...(n.areas || []).map(a => {
     const b = Object.assign(document.createElement('button'), { className: 'chip', textContent: a });
     b.addEventListener('click', () => {
-      $('note-dialog').close();
       openAreas.add(a);
       setView('areas');
+      openSidebar();
     });
     return b;
   }));
@@ -414,7 +457,7 @@ async function applyToOpen(n, part) {
   showUndo(auto.describe(part), async () => {
     await store.update(n.id, before);
     await refresh();
-    if ($('note-dialog').open && openId === n.id) showView(current());
+    if (panelOpen() && openId === n.id) showView(current());
   });
 }
 
@@ -426,7 +469,7 @@ function showEdit(n) {
   $('note-body').value = n?.body || '';
   $('note-areas').value = (n?.areas || []).join(', ');
   $('note-delete').hidden = !n;
-  if (!$('note-dialog').open) $('note-dialog').showModal();
+  openPanel();
   (n ? $('note-body') : $('note-title')).focus();
 }
 
@@ -448,9 +491,8 @@ $('view-body').addEventListener('click', async e => {
 
 $('new-note').addEventListener('click', () => { openId = null; showEdit(null); });
 $('note-edit').addEventListener('click', () => showEdit(current()));
-$('note-close').addEventListener('click', () => $('note-dialog').close());
-$('note-dialog').addEventListener('close', () => { $('undo-bar').hidden = true; });
-$('note-cancel').addEventListener('click', () => (openId ? showView(current()) : $('note-dialog').close()));
+$('note-close').addEventListener('click', closePanel);
+$('note-cancel').addEventListener('click', () => (openId ? showView(current()) : closePanel()));
 
 $('note-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -481,7 +523,7 @@ $('note-form').addEventListener('submit', async e => {
 $('note-delete').addEventListener('click', async () => {
   if (!confirm('Delete this note?')) return;
   await store.remove(openId);
-  $('note-dialog').close();
+  closePanel();
   await refresh();
 });
 

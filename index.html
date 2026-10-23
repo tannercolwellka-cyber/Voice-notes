@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Voice Notes</title>
-  <meta name="theme-color" content="#14161a">
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Voice Notes">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -26,91 +27,112 @@
     </form>
   </section>
 
-  <!-- Main app -->
-  <section id="app" class="screen" hidden>
-    <header>
-      <h1>Voice Notes</h1>
-      <span id="sync-status" class="badge"></span>
-      <button id="sign-out" class="link" hidden>Sign out</button>
-    </header>
+  <!-- Main app: sidebar of notes on the left, recorder or the open note on the right -->
+  <div id="app" class="layout" hidden>
+    <aside id="sidebar" class="sidebar">
+      <header class="side-head">
+        <h1>Voice Notes</h1>
+        <span id="sync-status" class="badge"></span>
+        <button id="close-sidebar" class="icon only-phone" aria-label="Close menu">✕</button>
+      </header>
 
-    <div class="capture">
-      <button id="record" class="record" aria-label="Start recording">
-        <span class="dot"></span>
+      <button id="go-record" class="side-record">
+        <span class="mini-dot"></span> Record a note
       </button>
-      <p id="record-hint">Tap to record</p>
-      <div id="live" class="live" hidden></div>
-      <form id="type-form" class="type-form">
-        <textarea id="type-input" rows="2" placeholder="…or type a note"></textarea>
-        <button type="submit">Save</button>
-      </form>
-    </div>
 
-    <div id="undo-bar" class="undo" hidden>
-      <span></span>
-      <button id="undo" class="secondary">Undo</button>
-    </div>
-
-    <div class="toolbar">
       <input id="search" type="search" placeholder="Search notes">
-      <button id="new-note" class="secondary">New</button>
-      <button id="import" class="secondary">Import</button>
-      <button id="export" class="secondary">Export</button>
-      <input id="import-files" type="file" accept=".txt,.md,.markdown,.html,.htm,text/plain" multiple hidden>
-    </div>
-    <div class="views" role="tablist">
-      <button id="view-list" class="tab" role="tab">Notes</button>
-      <button id="view-areas" class="tab" role="tab">Areas</button>
-    </div>
-    <nav id="folders" class="folders"></nav>
-    <ul id="notes" class="notes"></ul>
-    <div id="areas" class="areas" hidden>
-      <button id="new-area" class="secondary">New area</button>
-      <div id="area-list"></div>
-    </div>
-  </section>
-
-  <!-- Single note: read it, or edit it -->
-  <dialog id="note-dialog">
-    <div id="note-view">
-      <div class="row">
-        <span id="view-folder" class="meta"></span>
-        <span class="spacer"></span>
-        <button id="note-edit" class="secondary">Edit</button>
-        <button id="note-close" class="secondary">Close</button>
+      <div class="views" role="tablist">
+        <button id="view-list" class="tab" role="tab">Notes</button>
+        <button id="view-areas" class="tab" role="tab">Areas</button>
       </div>
-      <h2 id="view-title"></h2>
-      <div id="view-areas-chips" class="chips"></div>
-      <div id="view-body" class="markdown"></div>
-      <p id="note-meta" class="meta"></p>
-      <section id="backlinks" class="backlinks" hidden>
-        <h3>Linked from</h3>
-        <ul></ul>
-      </section>
-      <section id="suggestions" class="backlinks" hidden>
-        <h3>Suggestions</h3>
-        <div class="chips"></div>
-      </section>
-      <section id="mentions" class="backlinks" hidden>
-        <h3>Mentioned in, not linked yet</h3>
-        <ul></ul>
-      </section>
-    </div>
+      <nav id="folders" class="folders"></nav>
 
-    <form id="note-form" hidden>
-      <input id="note-title" placeholder="Title">
-      <input id="note-folder" placeholder="Folder (like Work or Work/Ideas)" list="folder-list">
-      <datalist id="folder-list"></datalist>
-      <input id="note-areas" placeholder="Areas, separated by commas (like Health, Cooking)">
-      <textarea id="note-body" rows="12" placeholder="Write in Markdown. Link to another note with [[its title]]."></textarea>
-      <div class="row">
-        <button type="button" id="note-delete" class="danger">Delete</button>
-        <span class="spacer"></span>
-        <button type="button" id="note-cancel" class="secondary">Cancel</button>
-        <button type="submit">Save</button>
+      <div class="side-scroll">
+        <ul id="notes" class="notes"></ul>
+        <div id="areas" class="areas" hidden>
+          <button id="new-area" class="secondary">New area</button>
+          <div id="area-list"></div>
+        </div>
       </div>
-    </form>
-  </dialog>
+
+      <footer class="side-foot">
+        <button id="new-note" class="secondary">New</button>
+        <button id="import" class="secondary">Import</button>
+        <button id="export" class="secondary">Export</button>
+        <button id="sign-out" class="link" hidden>Sign out</button>
+        <input id="import-files" type="file" accept=".txt,.md,.markdown,.html,.htm,text/plain" multiple hidden>
+      </footer>
+    </aside>
+    <div id="scrim" class="scrim" hidden></div>
+
+    <main class="main">
+      <div class="topbar only-phone">
+        <button id="open-sidebar" class="icon" aria-label="Show notes">☰</button>
+        <span id="topbar-title">Voice Notes</span>
+      </div>
+
+      <div id="undo-bar" class="undo" hidden>
+        <span></span>
+        <button id="undo" class="secondary">Undo</button>
+      </div>
+
+      <!-- Recorder -->
+      <section id="capture" class="capture">
+        <button id="record" class="record" aria-label="Start recording">
+          <span class="dot"></span>
+        </button>
+        <p id="record-hint">Tap to record</p>
+        <div id="live" class="live" hidden></div>
+        <form id="type-form" class="type-form">
+          <textarea id="type-input" rows="2" placeholder="…or type a note"></textarea>
+          <button type="submit">Save</button>
+        </form>
+        <p id="capture-count" class="meta"></p>
+      </section>
+
+      <!-- One note: read it, or edit it -->
+      <section id="note-panel" class="note-panel" hidden>
+        <div id="note-view">
+          <div class="row">
+            <button id="note-close" class="secondary">← Back</button>
+            <span id="view-folder" class="meta"></span>
+            <span class="spacer"></span>
+            <button id="note-edit" class="secondary">Edit</button>
+          </div>
+          <h2 id="view-title"></h2>
+          <div id="view-areas-chips" class="chips"></div>
+          <div id="view-body" class="markdown"></div>
+          <p id="note-meta" class="meta"></p>
+          <section id="backlinks" class="backlinks" hidden>
+            <h3>Linked from</h3>
+            <ul></ul>
+          </section>
+          <section id="suggestions" class="backlinks" hidden>
+            <h3>Suggestions</h3>
+            <div class="chips"></div>
+          </section>
+          <section id="mentions" class="backlinks" hidden>
+            <h3>Mentioned in, not linked yet</h3>
+            <ul></ul>
+          </section>
+        </div>
+
+        <form id="note-form" hidden>
+          <input id="note-title" placeholder="Title">
+          <input id="note-folder" placeholder="Folder (like Work or Work/Ideas)" list="folder-list">
+          <datalist id="folder-list"></datalist>
+          <input id="note-areas" placeholder="Areas, separated by commas (like Health, Cooking)">
+          <textarea id="note-body" rows="14" placeholder="Write in Markdown. Link to another note with [[its title]]."></textarea>
+          <div class="row">
+            <button type="button" id="note-delete" class="danger">Delete</button>
+            <span class="spacer"></span>
+            <button type="button" id="note-cancel" class="secondary">Cancel</button>
+            <button type="submit">Save</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>
