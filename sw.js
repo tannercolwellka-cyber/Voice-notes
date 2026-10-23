@@ -1,6 +1,6 @@
 // Lets the app open like a normal app from the home screen.
 // Serves the latest app files when online, and the saved copy when offline.
-const CACHE = 'voice-notes-v5';
+const CACHE = 'voice-notes-v6';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'store.js', 'speech.js', 'config.js', 'library.js',
   'vendor/marked.esm.js', 'vendor/purify.es.js', 'vendor/jszip.min.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png'];
@@ -29,8 +29,10 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.origin !== location.origin) return;
+  // no-cache asks GitHub for the newest copy instead of the browser's 10 minute old one,
+  // so updates show up the next time you open the app.
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request.url, { cache: 'no-cache' })
       .then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, copy));
