@@ -1,6 +1,6 @@
 // Lets the app open like a normal app from the home screen.
 // Serves the latest app files when online, and the saved copy when offline.
-const CACHE = 'voice-notes-v7';
+const CACHE = 'voice-notes-v8';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'store.js', 'speech.js', 'config.js', 'library.js', 'suggest.js',
   'vendor/marked.esm.js', 'vendor/purify.es.js', 'vendor/jszip.min.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png'];

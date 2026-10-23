@@ -1,4 +1,4 @@
-// Everything about notes as a library: Markdown, [[links]], folders, import and export.
+// Everything about notes as a library: Markdown, [[links]], folders, areas, import and export.
 
 import { marked } from './vendor/marked.esm.js';
 import DOMPurify from './vendor/purify.es.js';
@@ -62,6 +62,42 @@ export function inFolder(note, folder) {
   return note.folder === folder || note.folder.startsWith(folder + '/');
 }
 
+// ---------- areas ----------
+// Areas are like folders, except a note can be in as many as you like.
+
+// Every area with how many notes are in it, biggest first.
+export function areas(notes) {
+  const counts = new Map();
+  for (const n of notes) for (const a of n.areas || []) counts.set(a, (counts.get(a) || 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([name, count]) => ({ name, count }));
+}
+
+// "Health, cooking,  Health" -> ["Health", "cooking"]
+export function parseAreas(text) {
+  const seen = new Set();
+  return text.split(',').map(a => a.trim().replace(/^#/, '')).filter(a => {
+    const key = a.toLowerCase();
+    if (!a || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// Obsidian keeps tags in a block at the top of the file:
+//   ---
+//   tags: [Health, Cooking]
+//   ---
+// Returns the areas it lists and the text without that block.
+function splitFrontmatter(text) {
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+  if (!m) return { areas: [], body: text };
+  const inline = m[1].match(/^tags:[ \t]*\[(.*)\]/m);
+  const list = m[1].match(/^tags:[ \t]*\r?\n((?:[ \t]*-.*\r?\n?)+)/m);
+  const single = m[1].match(/^tags:[ \t]*([^\[\s].*)$/m);
+  const raw = inline ? inline[1] : list ? list[1].split('\n').map(l => l.replace(/^\s*-\s*/, '')).join(',') : single ? single[1] : '';
+  return { areas: parseAreas(raw.replace(/["']/g, '')), body: text.slice(m[0].length) };
+}
+
 // ---------- import ----------
 
 // Reads files the user picked and returns notes to create.
@@ -78,9 +114,11 @@ export async function parseFiles(files) {
     const name = file.name.replace(/\.(md|markdown|txt|html?)$/i, '');
     // When a whole folder is picked, keep its subfolders: "Vault/Work/idea.md" -> "Work".
     const parts = (file.webkitRelativePath || '').split('/').slice(1, -1);
+    const { areas: tags, body } = splitFrontmatter(text);
     out.push({
       title: name,
-      body: /\.html?$/i.test(file.name) ? htmlToText(text) : text.trim(),
+      body: /\.html?$/i.test(file.name) ? htmlToText(body) : body.trim(),
+      areas: tags,
       folder: parts.join('/'),
       created_at: new Date(file.lastModified || Date.now()).toISOString(),
     });
@@ -145,7 +183,9 @@ export async function exportZip(notes) {
     let path = (n.folder ? n.folder + '/' : '') + safe;
     for (let i = 2; used.has(path.toLowerCase()); i++) path = (n.folder ? n.folder + '/' : '') + `${safe} ${i}`;
     used.add(path.toLowerCase());
-    zip.file(path + '.md', n.body, { date: new Date(n.updated_at || n.created_at) });
+    // Areas become Obsidian tags.
+    const tags = (n.areas || []).length ? `---\ntags: [${n.areas.map(a => JSON.stringify(a)).join(', ')}]\n---\n` : '';
+    zip.file(path + '.md', tags + n.body, { date: new Date(n.updated_at || n.created_at) });
   }
   const blob = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a');

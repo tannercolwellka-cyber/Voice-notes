@@ -9,6 +9,14 @@ let notes = [];
 let stopListening = null;
 let openId = null;      // the note in the dialog, or null for a new one
 let folder = null;      // folder filter: null = all, '' = no folder
+let view = savedView(); // 'list' or 'areas'
+const openAreas = new Set();   // area sections that are expanded
+const findingFor = new Set();  // area sections showing "notes that might fit"
+const newAreas = new Set();    // areas made with New area that have no notes yet
+
+function savedView() {
+  try { return localStorage.getItem('voice-notes-view') || 'list'; } catch { return 'list'; }
+}
 
 // ---------- start up ----------
 
@@ -104,7 +112,13 @@ async function save(body, source) {
   } catch {
     queue({ ...note, id: crypto.randomUUID(), created_at: new Date().toISOString() });
   }
-  if (made) await organize(made);
+  if (made) {
+    try {
+      await organize(made);
+    } catch (err) {
+      console.error('Could not organize note', err);
+    }
+  }
   await refresh();
 }
 
@@ -118,7 +132,7 @@ async function organize(note) {
   const s = auto.suggest(note, notes);
   if (folder !== null) s.folder = null;
   if (auto.isEmpty(s)) return;
-  const before = { body: note.body, folder: note.folder };
+  const before = { body: note.body, folder: note.folder, areas: note.areas || [] };
   await store.update(note.id, auto.apply(note, s));
   showUndo(auto.describe(s), async () => {
     await store.update(note.id, before);
@@ -157,18 +171,32 @@ async function refresh() {
 
 $('search').addEventListener('input', render);
 
+function setView(v) {
+  view = v;
+  try { localStorage.setItem('voice-notes-view', v); } catch {}
+  render();
+}
+$('view-list').addEventListener('click', () => setView('list'));
+$('view-areas').addEventListener('click', () => setView('areas'));
+
 function render() {
   renderFolders();
   const q = $('search').value.toLowerCase();
   const shown = notes.filter(n => lib.inFolder(n, folder) &&
-    (!q || (n.title + ' ' + n.body + ' ' + n.folder).toLowerCase().includes(q)));
+    (!q || [n.title, n.body, n.folder, ...(n.areas || [])].join(' ').toLowerCase().includes(q)));
+  $('view-list').classList.toggle('on', view === 'list');
+  $('view-areas').classList.toggle('on', view === 'areas');
+  $('notes').hidden = view !== 'list';
+  $('areas').hidden = view !== 'areas';
+  if (view === 'areas') return renderAreas(shown);
   $('notes').replaceChildren(...shown.map(n => {
     const li = document.createElement('li');
-    li.innerHTML = '<strong></strong><span class="preview"></span><span class="meta"><time></time><span class="folder"></span></span>';
+    li.innerHTML = '<strong></strong><span class="preview"></span><span class="meta"><time></time><span class="folder"></span><span class="area-tag"></span></span>';
     li.querySelector('strong').textContent = n.title;
     li.querySelector('.preview').textContent = n.body;
     li.querySelector('time').textContent = n.waiting ? 'Waiting to upload' : when(n.created_at);
     if (folder === null && n.folder) li.querySelector('.folder').textContent = n.folder;
+    if (n.areas?.length) li.querySelector('.area-tag').textContent = n.areas.map(a => '#' + a).join(' ');
     if (!n.waiting) li.addEventListener('click', () => openNote(n));
     return li;
   }));
@@ -181,6 +209,108 @@ function render() {
     $('notes').append(li);
   }
 }
+
+// ---------- areas ----------
+
+function renderAreas(shown) {
+  const list = lib.areas(shown);
+  for (const a of newAreas) {
+    if (notes.some(n => n.areas?.includes(a))) newAreas.delete(a);
+    else list.unshift({ name: a, count: 0 });
+  }
+  const loose = shown.filter(n => !n.areas?.length && !n.waiting);
+  const sections = list.map(({ name, count }) =>
+    areaSection(name, count, shown.filter(n => n.areas?.includes(name)), true));
+  if (loose.length) sections.push(areaSection('Not in an area', loose.length, loose, false));
+  if (!list.length) {
+    const p = document.createElement('p');
+    p.className = 'meta';
+    p.textContent = 'No areas yet. Tap New area to make one, like Health or Work, and the app will suggest notes that fit.';
+    sections.unshift(p);
+  }
+  $('area-list').replaceChildren(...sections);
+}
+
+function areaSection(name, count, members, real) {
+  const d = document.createElement('details');
+  d.className = 'area';
+  d.open = openAreas.has(name);
+  d.addEventListener('toggle', () => { d.open ? openAreas.add(name) : openAreas.delete(name); });
+
+  const summary = document.createElement('summary');
+  summary.innerHTML = '<span class="name"></span><span class="count"></span><span class="spacer"></span>';
+  summary.querySelector('.name').textContent = name;
+  summary.querySelector('.count').textContent = count;
+  if (real) {
+    const find = Object.assign(document.createElement('button'), { className: 'secondary', textContent: 'Find notes' });
+    find.addEventListener('click', e => {
+      e.preventDefault();
+      findingFor.has(name) ? findingFor.delete(name) : findingFor.add(name);
+      openAreas.add(name);
+      render();
+    });
+    summary.append(find);
+  }
+  d.append(summary);
+
+  if (real && findingFor.has(name)) d.append(findPanel(name));
+
+  const ul = document.createElement('ul');
+  ul.append(...members.map(n => {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="title"></span><span class="also"></span>';
+    li.querySelector('.title').textContent = n.title;
+    const also = (n.areas || []).filter(a => a !== name);
+    if (also.length) li.querySelector('.also').textContent = 'also ' + also.join(', ');
+    li.addEventListener('click', () => openNote(n));
+    if (real) {
+      const out = Object.assign(document.createElement('button'), { className: 'link', textContent: '✕', title: `Take out of ${name}` });
+      out.setAttribute('aria-label', `Take ${n.title} out of ${name}`);
+      out.addEventListener('click', async e => {
+        e.stopPropagation();
+        await store.update(n.id, { areas: n.areas.filter(a => a !== name) });
+        await refresh();
+      });
+      li.append(out);
+    }
+    return li;
+  }));
+  d.append(ul);
+  return d;
+}
+
+// Notes that look like they belong in an area, each with an Add button.
+function findPanel(name) {
+  const box = document.createElement('div');
+  box.className = 'find';
+  const fits = auto.candidatesFor(name, notes);
+  box.innerHTML = '<h4></h4><ul></ul>';
+  box.querySelector('h4').textContent = fits.length ? 'Might fit here' : 'No close matches. Add notes from a note’s Edit screen.';
+  box.querySelector('ul').append(...fits.map(n => {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="title"></span>';
+    li.querySelector('.title').textContent = n.title;
+    const add = Object.assign(document.createElement('button'), { className: 'secondary', textContent: 'Add' });
+    add.addEventListener('click', async () => {
+      await store.update(n.id, { areas: [...(n.areas || []), name] });
+      await refresh();
+    });
+    li.append(add);
+    return li;
+  }));
+  return box;
+}
+
+$('new-area').addEventListener('click', () => {
+  const name = lib.parseAreas(prompt('Name the new area, like Health or Side projects') || '')[0];
+  if (!name) return;
+  const existing = lib.areas(notes).find(a => a.name.toLowerCase() === name.toLowerCase());
+  const area = existing ? existing.name : name;
+  if (!existing) newAreas.add(area);
+  openAreas.add(area);
+  findingFor.add(area);
+  render();
+});
 
 function renderFolders() {
   const all = lib.folders(notes);
@@ -218,6 +348,15 @@ function showView(n) {
   $('note-view').hidden = false;
   $('view-title').textContent = n.title;
   $('view-folder').textContent = n.folder || '';
+  $('view-areas-chips').replaceChildren(...(n.areas || []).map(a => {
+    const b = Object.assign(document.createElement('button'), { className: 'chip', textContent: a });
+    b.addEventListener('click', () => {
+      $('note-dialog').close();
+      openAreas.add(a);
+      setView('areas');
+    });
+    return b;
+  }));
   $('view-body').innerHTML = lib.render(n.body, notes);
   $('note-meta').textContent = `${SOURCE[n.source] || 'Added'} ${when(n.created_at)}`;
   const from = lib.backlinks(notes, n);
@@ -238,10 +377,11 @@ function showSuggestions(n) {
   const chips = [];
   const chip = (label, part) => {
     const b = Object.assign(document.createElement('button'), { className: 'chip', textContent: label });
-    b.addEventListener('click', () => applyToOpen(n, { folder: null, mentions: [], related: [], ...part }));
+    b.addEventListener('click', () => applyToOpen(n, { folder: null, areas: [], mentions: [], related: [], ...part }));
     chips.push(b);
   };
   if (s.folder) chip(`Move to ${s.folder}`, { folder: s.folder });
+  for (const a of s.areas) chip(`Add to area: ${a}`, { areas: [a] });
   for (const m of s.mentions) chip(`Link ${m.title}`, { mentions: [m] });
   for (const t of s.related) chip(`Add related: ${t}`, { related: [t] });
   if (chips.length > 1) chip('Do all', s);
@@ -257,7 +397,7 @@ function showSuggestions(n) {
     const link = Object.assign(document.createElement('button'), { className: 'secondary', textContent: 'Link' });
     link.addEventListener('click', async () => {
       const m = auto.suggest(o, notes).mentions.find(x => x.title === n.title);
-      if (m) await store.update(o.id, auto.apply(o, { folder: null, mentions: [m], related: [] }));
+      if (m) await store.update(o.id, auto.apply(o, { folder: null, areas: [], mentions: [m], related: [] }));
       await refresh();
       showView(current());
     });
@@ -267,7 +407,7 @@ function showSuggestions(n) {
 }
 
 async function applyToOpen(n, part) {
-  const before = { body: n.body, folder: n.folder };
+  const before = { body: n.body, folder: n.folder, areas: n.areas || [] };
   await store.update(n.id, auto.apply(n, part));
   await refresh();
   showView(current());
@@ -284,6 +424,7 @@ function showEdit(n) {
   $('note-title').value = n?.title || '';
   $('note-folder').value = n ? n.folder : folder || '';
   $('note-body').value = n?.body || '';
+  $('note-areas').value = (n?.areas || []).join(', ');
   $('note-delete').hidden = !n;
   if (!$('note-dialog').open) $('note-dialog').showModal();
   (n ? $('note-body') : $('note-title')).focus();
@@ -319,6 +460,9 @@ $('note-form').addEventListener('submit', async e => {
     folder: $('note-folder').value.trim().replace(/^\/+|\/+$/g, ''),
   };
   const before = current();
+  // Only send areas when there are some, so saving still works before the areas update is run in Supabase.
+  const areas = lib.parseAreas($('note-areas').value);
+  if (areas.length || before?.areas?.length) fields.areas = areas;
   if (before) {
     await store.update(before.id, fields);
     // Keep [[links]] pointing here when the title changes.

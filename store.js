@@ -1,7 +1,7 @@
 // Where notes are kept. Two versions with the same functions:
 //   localStore - this browser only, for trying the app out
 //   cloudStore - Supabase, so every device sees the same notes
-// A note looks like: { id, title, body, source, folder, created_at, updated_at }
+// A note looks like: { id, title, body, source, folder, areas, created_at, updated_at }
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 
@@ -34,8 +34,8 @@ export const localStore = {
   },
   async createMany(list) {
     const now = new Date().toISOString();
-    const made = list.map(({ title, body, source, folder, created_at }) => ({
-      id: crypto.randomUUID(), title, body, source, folder: folder || '',
+    const made = list.map(({ title, body, source, folder, areas, created_at }) => ({
+      id: crypto.randomUUID(), title, body, source, folder: folder || '', areas: areas || [],
       created_at: created_at || now, updated_at: now,
     }));
     writeLocal([...made, ...readLocal()]);
@@ -94,8 +94,8 @@ export const cloudStore = {
     return (await this.createMany([fields]))[0];
   },
   async createMany(list) {
-    const rows = list.map(({ title, body, source, folder, created_at }) =>
-      ({ title, body, source, folder: folder || '', ...(created_at && { created_at }) }));
+    const rows = list.map(({ title, body, source, folder, areas, created_at }) =>
+      ({ title, body, source, folder: folder || '', ...(areas?.length && { areas }), ...(created_at && { created_at }) }));
     // defaultToNull: false lets the database fill in created_at for rows that leave it out.
     return check(await (await client()).from('notes').insert(rows, { defaultToNull: false }).select());
   },

@@ -7,6 +7,7 @@ create table public.notes (
   body text not null default '',
   source text not null default 'typed',   -- 'voice', 'typed' or 'import'
   folder text not null default '',        -- like 'Work/Ideas'; empty means no folder
+  areas text[] not null default '{}',     -- sections a note belongs to; can be several
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

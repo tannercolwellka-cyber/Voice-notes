@@ -19,12 +19,13 @@ Steps 1 to 3 are done: voice capture, sync, a library with folders, `[[links]]`,
 | `app.js` | Buttons, the note list, search, editing |
 | `speech.js` | Turns your voice into text |
 | `library.js` | Markdown, `[[links]]`, backlinks, folders, import and export |
-| `suggest.js` | Automatic filing and linking, by comparing words between notes |
+| `suggest.js` | Automatic filing, areas and linking, by comparing words between notes |
 | `store.js` | Saves and loads notes, locally or in Supabase |
 | `config.js` | Your Supabase address and key |
 | `sw.js`, `manifest.webmanifest` | Let it install like an app |
 | `supabase/schema.sql` | Creates the notes table and its privacy rules |
 | `supabase/002_folders.sql` | The step 2 update that adds folders |
+| `supabase/003_areas.sql` | The update that adds areas |
 | `vendor/` | Libraries for Markdown, safety cleaning and zip files, kept here so the app works offline |
 
 ## Using your library
@@ -35,6 +36,17 @@ Steps 1 to 3 are done: voice capture, sync, a library with folders, `[[links]]`,
 - **Backlinks:** the bottom of each note lists the notes that link to it, under **Linked from**.
 - **Export:** **Export** downloads everything as a zip of `.md` files, one folder per folder. You can open it straight in Obsidian, so your notes are never stuck in this app.
 - **Import:** **Import** takes `.md`, `.txt` and `.html` files, so you can bring in an Obsidian vault or other notes. It also takes the Apple Notes export below. Importing the same notes twice doesn't make copies.
+
+## Areas
+
+Areas are sections that group notes by topic, like **Health**, **Cooking** or **Side projects**. Unlike folders, one note can be in as many areas as you like. A protein recipe can sit in both Cooking and Health.
+
+- **See them:** tap **Areas** above the list. Each area is a section you can open, showing its notes and how many there are. Notes that are also in other areas say so, like "also Health". **Not in an area** at the bottom collects everything else.
+- **Make one:** tap **New area** and name it. The app lists notes that look like they fit, each with an **Add** button.
+- **Fill one:** **Find notes** on any area suggests more notes that fit, based on the words they share with notes already in it. Tap ✕ next to a note to take it out.
+- **From a note:** tap **Edit** and type areas into the **Areas** box, separated by commas. The area names show as chips under the note's title, and tapping one jumps to that area.
+- **Automatically:** new notes you record join every area they clearly fit, up to three, and the Undo bar covers that too.
+- **Obsidian:** areas export as Obsidian tags, and tags in imported Obsidian files come back in as areas.
 
 ## Automatic organizing
 
@@ -77,9 +89,12 @@ Apple doesn't let other apps read Apple Notes directly, so you'll build a Shortc
 
 Locked notes are skipped, and images and drawings don't come across, only the text. Your Apple Notes stay as they are.
 
-## Step 2 database update
+## Database updates
 
-If you set up Supabase before step 2, run `supabase/002_folders.sql` once the same way you ran `schema.sql`: **SQL Editor → New query**, paste, **Run**. Until you do, saving notes will fail.
+If you set up Supabase before these features came out, run each of these once, the same way you ran `schema.sql` (**SQL Editor → New query**, paste, **Run**):
+
+- `supabase/002_folders.sql` for folders. Without it, saving notes fails.
+- `supabase/003_areas.sql` for areas. Without it, adding a note to an area fails.
 
 ## One-time setup
 

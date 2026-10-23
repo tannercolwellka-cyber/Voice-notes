@@ -58,8 +58,16 @@
       <button id="export" class="secondary">Export</button>
       <input id="import-files" type="file" accept=".txt,.md,.markdown,.html,.htm,text/plain" multiple hidden>
     </div>
+    <div class="views" role="tablist">
+      <button id="view-list" class="tab" role="tab">Notes</button>
+      <button id="view-areas" class="tab" role="tab">Areas</button>
+    </div>
     <nav id="folders" class="folders"></nav>
     <ul id="notes" class="notes"></ul>
+    <div id="areas" class="areas" hidden>
+      <button id="new-area" class="secondary">New area</button>
+      <div id="area-list"></div>
+    </div>
   </section>
 
   <!-- Single note: read it, or edit it -->
@@ -72,6 +80,7 @@
         <button id="note-close" class="secondary">Close</button>
       </div>
       <h2 id="view-title"></h2>
+      <div id="view-areas-chips" class="chips"></div>
       <div id="view-body" class="markdown"></div>
       <p id="note-meta" class="meta"></p>
       <section id="backlinks" class="backlinks" hidden>
@@ -92,6 +101,7 @@
       <input id="note-title" placeholder="Title">
       <input id="note-folder" placeholder="Folder (like Work or Work/Ideas)" list="folder-list">
       <datalist id="folder-list"></datalist>
+      <input id="note-areas" placeholder="Areas, separated by commas (like Health, Cooking)">
       <textarea id="note-body" rows="12" placeholder="Write in Markdown. Link to another note with [[its title]]."></textarea>
       <div class="row">
         <button type="button" id="note-delete" class="danger">Delete</button>
