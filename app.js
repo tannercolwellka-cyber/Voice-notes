@@ -1,4 +1,4 @@
-import { store, syncEnabled, titleFrom } from './store.js';
+import { store, syncEnabled, titleFrom, pending, queue, flush } from './store.js';
 import { speechSupported, startListening } from './speech.js';
 
 const $ = id => document.getElementById(id);
@@ -28,8 +28,10 @@ async function showApp() {
     $('record').disabled = true;
     $('record-hint').textContent = 'Voice isn’t supported in this browser. Try Safari or Chrome.';
   }
+  await flush();
   await refresh();
   store.subscribe(refresh);
+  addEventListener('online', async () => { await flush(); await refresh(); });
 }
 
 // ---------- sign in ----------
@@ -91,20 +93,28 @@ $('type-form').addEventListener('submit', async e => {
 });
 
 async function save(body, source) {
-  await store.create({ title: titleFrom(body), body, source });
+  const note = { title: titleFrom(body), body, source };
+  try {
+    await store.create(note);
+  } catch {
+    queue({ ...note, id: crypto.randomUUID(), created_at: new Date().toISOString() });
+  }
   await refresh();
 }
 
 // ---------- list ----------
 
 async function refresh() {
+  const waiting = pending().map(n => ({ ...n, waiting: true }));
   try {
-    notes = await store.list();
-    render();
+    notes = [...waiting, ...await store.list()];
+    $('sync-status').textContent = syncEnabled ? 'Synced' : 'This device only';
   } catch (err) {
+    notes = [...waiting, ...notes.filter(n => !n.waiting)];
     $('sync-status').textContent = 'Offline';
     console.error(err);
   }
+  render();
 }
 
 $('search').addEventListener('input', render);
@@ -117,8 +127,8 @@ function render() {
     li.innerHTML = '<strong></strong><span class="preview"></span><time></time>';
     li.querySelector('strong').textContent = n.title;
     li.querySelector('.preview').textContent = n.body;
-    li.querySelector('time').textContent = when(n.created_at);
-    li.addEventListener('click', () => openNote(n));
+    li.querySelector('time').textContent = n.waiting ? 'Waiting to upload' : when(n.created_at);
+    if (!n.waiting) li.addEventListener('click', () => openNote(n));
     return li;
   }));
   if (!shown.length) {

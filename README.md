@@ -9,6 +9,7 @@ This is step 1 of the plan: capture and sync. Your library, the Apple Notes impo
 - It's a web app, so the same code runs on your iPhone (Safari) and your Windows PC (Edge or Chrome). You add it to your home screen or install it, and it opens like a normal app.
 - Speech to text uses the recognizer built into your browser, so there's no API key or cost. On iPhone this is the same system as keyboard dictation.
 - Notes are stored in Supabase, a free hosted database. When you save a note on one device, Supabase pushes it to your other open devices right away.
+- If your phone has no signal, the note waits on the phone and uploads by itself when you're back online.
 - Without Supabase set up, the app still works but keeps notes only in that one browser. That's handy for trying it out.
 
 | File | What it does |
@@ -22,9 +23,39 @@ This is step 1 of the plan: capture and sync. Your library, the Apple Notes impo
 | `sw.js`, `manifest.webmanifest` | Let it install like an app |
 | `supabase/schema.sql` | Creates the notes table and its privacy rules |
 
-## Try it on your PC
+## One-time setup
 
-This runs the app from your own computer, so you can see changes before they go live. You only do steps 1 to 3 once.
+You do this once, all in your web browser. Nothing to download and no Command Prompt. After that you just tap the app on your home screen.
+
+### 1. Put it online (GitHub Pages)
+
+Your iPhone needs an `https://` address before it lets the app use the microphone. GitHub Pages hosts it for free:
+
+1. On the repo's GitHub page, go to **Settings → Pages**.
+2. Under **Build and deployment**, pick **Deploy from a branch**, branch `main`, folder `/ (root)`, and save.
+3. After a minute, the address appears at the top of that page, like `https://YOUR-NAME.github.io/voice-notes/`.
+
+Every time a change is pushed to `main`, the site updates on its own.
+
+### 2. Turn on sync (Supabase)
+
+Supabase is the cloud that holds your notes. Your phone saves to it at any time, and your PC loads everything new whenever you open the app, even if the PC was off all day.
+
+1. Make a free account at [supabase.com](https://supabase.com) and create a new project. Any name and region works.
+2. Open **SQL Editor → New query**, paste everything from `supabase/schema.sql`, and press **Run**.
+3. Open **Project Settings → API Keys** (or **API** in older projects). Copy the **Project URL** and the **anon public** key (newer projects call it the **publishable** key) and send them to Claude to put in `config.js`. Or edit it yourself on GitHub: open `config.js`, click the pencil icon, paste them between the quotes, and click **Commit changes**. The anon key is designed to be public, so it's safe to share.
+4. Open **Authentication → URL Configuration** and set the **Site URL** to your GitHub Pages address.
+5. Open the app, choose **Create account**, and confirm the email Supabase sends you.
+6. Since this is just for you, turn off new sign-ups afterwards: **Authentication → Sign In / Providers → Email**, and switch off **Allow new users to sign up**.
+
+### 3. Add it to your home screen
+
+- **iPhone:** open your GitHub Pages address in Safari, tap the Share button, then **Add to Home Screen**. The first time you record, allow the microphone. If voice doesn't work, check that **Settings → General → Keyboard → Enable Dictation** is on.
+- **Windows:** open the address in Edge or Chrome and click the install icon at the right end of the address bar.
+
+## Making changes on your PC (optional)
+
+You only need this if you want to change the code yourself and try it before it goes live. Just using the app never needs it. You only do steps 1 to 3 once.
 
 **1. Install Python.** The app doesn't need Python itself. Python just comes with a tiny web server we can borrow.
 
@@ -60,35 +91,11 @@ The first line moves into the project folder. The second starts the web server, 
 
 If you get the latest changes from GitHub (`git pull`, see below) and the page still looks old, press **Ctrl+Shift+R** to reload without the saved copy.
 
-## Put it online (GitHub Pages)
-
-Your iPhone needs an `https://` address before it lets the app use the microphone. GitHub Pages hosts it for free:
-
-1. On the repo's GitHub page, go to **Settings → Pages**.
-2. Under **Build and deployment**, pick **Deploy from a branch**, branch `main`, folder `/ (root)`, and save.
-3. After a minute, the address appears at the top of that page, like `https://YOUR-NAME.github.io/voice-notes/`.
-
-Every time a change is pushed to `main`, the site updates on its own.
-
-## Turn on sync (Supabase)
-
-1. Make a free account at [supabase.com](https://supabase.com) and create a new project. Any name and region works.
-2. Open **SQL Editor → New query**, paste everything from `supabase/schema.sql`, and press **Run**.
-3. Open **Project Settings → API Keys** (or **API** in older projects). Copy the **Project URL** and the **anon public** key (newer projects call it the **publishable** key) into `config.js`.
-4. Open **Authentication → URL Configuration** and set the **Site URL** to your GitHub Pages address.
-5. Open the app, choose **Create account**, and confirm the email Supabase sends you.
-6. Since this is just for you, turn off new sign-ups afterwards: **Authentication → Sign In / Providers → Email**, and switch off **Allow new users to sign up**.
-
-## Install it
-
-- **iPhone:** open your GitHub Pages address in Safari, tap the Share button, then **Add to Home Screen**. The first time you record, allow the microphone. If voice doesn't work, check that **Settings → General → Keyboard → Enable Dictation** is on.
-- **Windows:** open the address in Edge or Chrome and click the install icon at the right end of the address bar.
-
 ## Things worth learning as you go
 
 These are the things you'll do over and over:
 
-- **Running it locally:** the `python -m http.server` command above. Most changes you'll want to see on your PC before pushing them.
+- **Running it locally:** the `python -m http.server` command in the section above. Most changes you'll want to see on your PC before pushing them.
 - **Git basics:** `git pull` gets the latest changes, `git add .` then `git commit -m "what changed"` saves a snapshot, and `git push` sends it to GitHub, which then updates the live site.
 - **The browser console:** press F12 in Edge or Chrome and open **Console**. When something breaks, the error shows up there, and pasting that error to Claude is usually the quickest fix.
 - **Small edits:** the wording and colors are good first changes to make yourself. Colors are at the top of `style.css`, and button text is in `index.html`.

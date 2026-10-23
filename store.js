@@ -29,9 +29,9 @@ export const localStore = {
   async list() {
     return readLocal().sort((a, b) => b.created_at.localeCompare(a.created_at));
   },
-  async create({ title, body, source }) {
+  async create({ title, body, source, created_at }) {
     const now = new Date().toISOString();
-    const note = { id: crypto.randomUUID(), title, body, source, created_at: now, updated_at: now };
+    const note = { id: crypto.randomUUID(), title, body, source, created_at: created_at || now, updated_at: now };
     writeLocal([note, ...readLocal()]);
     return note;
   },
@@ -84,9 +84,9 @@ export const cloudStore = {
     return check(await (await client())
       .from('notes').select('*').order('created_at', { ascending: false }));
   },
-  async create({ title, body, source }) {
+  async create({ title, body, source, created_at }) {
     return check(await (await client())
-      .from('notes').insert({ title, body, source }).select().single());
+      .from('notes').insert({ title, body, source, created_at }).select().single());
   },
   async update(id, fields) {
     check(await (await client()).from('notes').update(fields).eq('id', id));
@@ -104,3 +104,31 @@ export const cloudStore = {
 };
 
 export const store = syncEnabled ? cloudStore : localStore;
+
+// ---------- outbox ----------
+// Notes that couldn't upload (no signal) wait here, on this device, until they can.
+
+const OUTBOX = 'voice-notes-outbox';
+
+export function pending() {
+  try { return JSON.parse(localStorage.getItem(OUTBOX)) || []; } catch { return []; }
+}
+
+export function queue(note) {
+  localStorage.setItem(OUTBOX, JSON.stringify([...pending(), note]));
+}
+
+// Tries to upload every waiting note. Returns how many went up.
+export async function flush() {
+  let sent = 0;
+  for (const note of pending()) {
+    try {
+      await store.create(note);
+    } catch {
+      break;
+    }
+    localStorage.setItem(OUTBOX, JSON.stringify(pending().filter(n => n.id !== note.id)));
+    sent++;
+  }
+  return sent;
+}
