@@ -2,7 +2,7 @@
 
 Speak into your phone and the note shows up on your PC a moment later.
 
-Steps 1 and 2 of the plan are done: voice capture, sync, and a library with folders, `[[links]]`, Apple Notes import and export. Automatic sorting and linking come in step 3.
+Steps 1 to 3 are done: voice capture, sync, a library with folders, `[[links]]`, Apple Notes import and export, and automatic filing and linking. A smarter AI version of the automatic part can come later.
 
 ## How it works
 
@@ -19,6 +19,7 @@ Steps 1 and 2 of the plan are done: voice capture, sync, and a library with fold
 | `app.js` | Buttons, the note list, search, editing |
 | `speech.js` | Turns your voice into text |
 | `library.js` | Markdown, `[[links]]`, backlinks, folders, import and export |
+| `suggest.js` | Automatic filing and linking, by comparing words between notes |
 | `store.js` | Saves and loads notes, locally or in Supabase |
 | `config.js` | Your Supabase address and key |
 | `sw.js`, `manifest.webmanifest` | Let it install like an app |
@@ -34,6 +35,21 @@ Steps 1 and 2 of the plan are done: voice capture, sync, and a library with fold
 - **Backlinks:** the bottom of each note lists the notes that link to it, under **Linked from**.
 - **Export:** **Export** downloads everything as a zip of `.md` files, one folder per folder. You can open it straight in Obsidian, so your notes are never stuck in this app.
 - **Import:** **Import** takes `.md`, `.txt` and `.html` files, so you can bring in an Obsidian vault or other notes. It also takes the Apple Notes export below. Importing the same notes twice doesn't make copies.
+
+## Automatic organizing
+
+When you save a new note while looking at **All**, the app compares its words with your other notes:
+
+- **Folder:** if the closest notes mostly live in one folder, the new note goes there too. If you're looking at a folder when you record, the note stays in that folder.
+- **Links:** if the note mentions another note's title, like "the meal plan", that becomes a link. Up to three of the most similar notes are added at the bottom as `Related: [[...]]`.
+- **Undo:** a bar shows what it did, like "Filed in Home, linked to Meal plan." Tap **Undo** within about 12 seconds to put it back.
+
+Open any note to see more:
+
+- **Suggestions** offers a folder for unfiled notes, plus links to add. Tap one to apply it, or **Do all**. Each one can be undone.
+- **Mentioned in, not linked yet** lists notes that use this note's title without linking to it. **Link** turns that mention into a link.
+
+It all runs on your device for free. It matches words, not meaning, so "car" and "vehicle" don't count as related. That's what the AI version would add later.
 
 ## Bring in your Apple Notes
 

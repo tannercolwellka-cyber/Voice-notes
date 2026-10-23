@@ -46,6 +46,11 @@
       </form>
     </div>
 
+    <div id="undo-bar" class="undo" hidden>
+      <span></span>
+      <button id="undo" class="secondary">Undo</button>
+    </div>
+
     <div class="toolbar">
       <input id="search" type="search" placeholder="Search notes">
       <button id="new-note" class="secondary">New</button>
@@ -71,6 +76,14 @@
       <p id="note-meta" class="meta"></p>
       <section id="backlinks" class="backlinks" hidden>
         <h3>Linked from</h3>
+        <ul></ul>
+      </section>
+      <section id="suggestions" class="backlinks" hidden>
+        <h3>Suggestions</h3>
+        <div class="chips"></div>
+      </section>
+      <section id="mentions" class="backlinks" hidden>
+        <h3>Mentioned in, not linked yet</h3>
         <ul></ul>
       </section>
     </div>

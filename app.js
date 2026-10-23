@@ -1,6 +1,7 @@
 import { store, syncEnabled, titleFrom, pending, queue, flush } from './store.js';
 import { speechSupported, startListening } from './speech.js';
 import * as lib from './library.js';
+import * as auto from './suggest.js';
 
 const $ = id => document.getElementById(id);
 
@@ -97,12 +98,46 @@ $('type-form').addEventListener('submit', async e => {
 async function save(body, source) {
   // New notes go into the folder you're looking at.
   const note = { title: titleFrom(body), body, source, folder: folder || '' };
+  let made;
   try {
-    await store.create(note);
+    made = await store.create(note);
   } catch {
     queue({ ...note, id: crypto.randomUUID(), created_at: new Date().toISOString() });
   }
+  if (made) await organize(made);
   await refresh();
+}
+
+// ---------- auto-organize ----------
+
+let undoTimer = null;
+
+// Files a new note and links it to related ones, then offers Undo.
+// When you're looking at a folder, the note stays in that folder.
+async function organize(note) {
+  const s = auto.suggest(note, notes);
+  if (folder !== null) s.folder = null;
+  if (auto.isEmpty(s)) return;
+  const before = { body: note.body, folder: note.folder };
+  await store.update(note.id, auto.apply(note, s));
+  showUndo(auto.describe(s), async () => {
+    await store.update(note.id, before);
+    await refresh();
+  });
+}
+
+function showUndo(text, undo) {
+  clearTimeout(undoTimer);
+  // An open note blocks the rest of the page, so show the bar inside it.
+  if ($('note-dialog').open) $('note-view').prepend($('undo-bar'));
+  else $('app').querySelector('.toolbar').before($('undo-bar'));
+  $('undo-bar').querySelector('span').textContent = text + '.';
+  $('undo-bar').hidden = false;
+  $('undo').onclick = async () => {
+    $('undo-bar').hidden = true;
+    await undo();
+  };
+  undoTimer = setTimeout(() => { $('undo-bar').hidden = true; }, 12000);
 }
 
 // ---------- list ----------
@@ -194,6 +229,53 @@ function showView(n) {
     li.append(a);
     return li;
   }));
+  showSuggestions(n);
+}
+
+// Suggested folder and links for the open note, each one tap to apply.
+function showSuggestions(n) {
+  const s = auto.suggest(n, notes);
+  const chips = [];
+  const chip = (label, part) => {
+    const b = Object.assign(document.createElement('button'), { className: 'chip', textContent: label });
+    b.addEventListener('click', () => applyToOpen(n, { folder: null, mentions: [], related: [], ...part }));
+    chips.push(b);
+  };
+  if (s.folder) chip(`Move to ${s.folder}`, { folder: s.folder });
+  for (const m of s.mentions) chip(`Link ${m.title}`, { mentions: [m] });
+  for (const t of s.related) chip(`Add related: ${t}`, { related: [t] });
+  if (chips.length > 1) chip('Do all', s);
+  $('suggestions').hidden = !chips.length;
+  $('suggestions').querySelector('.chips').replaceChildren(...chips);
+
+  const mentions = auto.unlinkedMentions(n, notes);
+  $('mentions').hidden = !mentions.length;
+  $('mentions').querySelector('ul').replaceChildren(...mentions.map(o => {
+    const li = document.createElement('li');
+    const a = Object.assign(document.createElement('a'), { href: '#', textContent: o.title });
+    a.addEventListener('click', e => { e.preventDefault(); openNote(o); });
+    const link = Object.assign(document.createElement('button'), { className: 'secondary', textContent: 'Link' });
+    link.addEventListener('click', async () => {
+      const m = auto.suggest(o, notes).mentions.find(x => x.title === n.title);
+      if (m) await store.update(o.id, auto.apply(o, { folder: null, mentions: [m], related: [] }));
+      await refresh();
+      showView(current());
+    });
+    li.append(a, link);
+    return li;
+  }));
+}
+
+async function applyToOpen(n, part) {
+  const before = { body: n.body, folder: n.folder };
+  await store.update(n.id, auto.apply(n, part));
+  await refresh();
+  showView(current());
+  showUndo(auto.describe(part), async () => {
+    await store.update(n.id, before);
+    await refresh();
+    if ($('note-dialog').open && openId === n.id) showView(current());
+  });
 }
 
 function showEdit(n) {
@@ -226,6 +308,7 @@ $('view-body').addEventListener('click', async e => {
 $('new-note').addEventListener('click', () => { openId = null; showEdit(null); });
 $('note-edit').addEventListener('click', () => showEdit(current()));
 $('note-close').addEventListener('click', () => $('note-dialog').close());
+$('note-dialog').addEventListener('close', () => { $('undo-bar').hidden = true; });
 $('note-cancel').addEventListener('click', () => (openId ? showView(current()) : $('note-dialog').close()));
 
 $('note-form').addEventListener('submit', async e => {
