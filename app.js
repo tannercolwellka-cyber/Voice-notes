@@ -603,6 +603,8 @@ $('import-files').addEventListener('change', async e => {
   e.target.value = '';
   if (!files.length) return;
   try {
+    const areaFile = files.find(f => /\.json$/i.test(f.name));
+    if (areaFile) return await applyAreaFile(areaFile);
     const found = await lib.parseFiles(files);
     const fresh = lib.withoutDuplicates(found, notes);
     if (!fresh.length) return alert(found.length ? 'Those notes are already in your library.' : 'No notes found in that file.');
@@ -617,6 +619,37 @@ $('import-files').addEventListener('change', async e => {
     alert('Import failed: ' + err.message);
   }
 });
+
+// An areas file says which areas notes belong in, so a whole library can be sorted in one go:
+//   { "notes": [ { "id": "...", "title": "Gym plan", "areas": ["Fitness", "Health"] }, ... ] }
+// Notes are matched by id, or by title when there's no id. Areas are added, never removed.
+async function applyAreaFile(file) {
+  const data = JSON.parse(await file.text());
+  const entries = Array.isArray(data) ? data : data.notes || [];
+  const changes = new Map();
+  for (const entry of entries) {
+    const wanted = lib.parseAreas((entry.areas || []).join(','));
+    if (!wanted.length) continue;
+    const matches = entry.id && notes.some(n => n.id === entry.id)
+      ? notes.filter(n => n.id === entry.id)
+      : notes.filter(n => !n.waiting && lib.sameTitle(n.title, entry.title || ''));
+    for (const n of matches) {
+      const have = changes.get(n.id) || n.areas || [];
+      const merged = lib.parseAreas([...have, ...wanted].join(','));
+      if (merged.length !== (n.areas || []).length) changes.set(n.id, merged);
+    }
+  }
+  if (!changes.size) return alert('Nothing to change: no notes in that file matched, or they already have those areas.');
+  const areaCount = new Set([...changes.values()].flat()).size;
+  if (!confirm(`Put ${changes.size} note${changes.size === 1 ? '' : 's'} into ${areaCount} area${areaCount === 1 ? '' : 's'}?`)) return;
+  let done = 0;
+  for (const [id, areas] of changes) {
+    await store.update(id, { areas });
+    done++;
+  }
+  await refresh();
+  alert(`Done. ${done} note${done === 1 ? '' : 's'} sorted into areas. Open the Areas tab to see them.`);
+}
 
 $('export').addEventListener('click', () => lib.exportZip(notes.filter(n => !n.waiting)));
 

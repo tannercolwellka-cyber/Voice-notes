@@ -10,6 +10,12 @@ const LINK = /\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/g;
 
 const same = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
+// Titles match ignoring case and the characters a file name can't hold.
+export function sameTitle(a, b) {
+  const clean = t => t.trim().toLowerCase().replace(/[\\/:*?"<>|]/g, '-');
+  return clean(a) === clean(b);
+}
+
 export function findByTitle(notes, title) {
   return notes.find(n => same(n.title, title));
 }
@@ -195,9 +201,9 @@ export async function exportZip(notes) {
     let path = (n.folder ? n.folder + '/' : '') + safe;
     for (let i = 2; used.has(path.toLowerCase()); i++) path = (n.folder ? n.folder + '/' : '') + `${safe} ${i}`;
     used.add(path.toLowerCase());
-    // Areas become Obsidian tags.
-    const tags = (n.areas || []).length ? `---\ntags: [${n.areas.map(a => JSON.stringify(a)).join(', ')}]\n---\n` : '';
-    zip.file(path + '.md', tags + n.body, { date: new Date(n.updated_at || n.created_at) });
+    // Areas become Obsidian tags. The id lets an areas file find this note again.
+    const tags = (n.areas || []).length ? `tags: [${n.areas.map(a => JSON.stringify(a)).join(', ')}]\n` : '';
+    zip.file(path + '.md', `---\nid: ${n.id}\n${tags}---\n` + n.body, { date: new Date(n.updated_at || n.created_at) });
   }
   const blob = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a');
