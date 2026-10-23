@@ -3,7 +3,8 @@
 
 import { linksIn, findByTitle } from './library.js';
 
-const PALETTE = ['#7aa7ff', '#ff9f43', '#4cd4a0', '#ff6b9a', '#b18cff', '#ffd166', '#4dd0e1', '#e57373'];
+const PALETTE = ['#7aa7ff', '#ff9f43', '#4cd4a0', '#ff6b9a', '#b18cff', '#ffd166', '#4dd0e1', '#e57373',
+  '#a3e635', '#f472b6', '#60a5fa', '#fbbf24', '#34d399', '#c084fc', '#fb7185', '#94a3b8'];
 
 // Builds dots and lines from notes. With byArea, notes that share an area are tied together too.
 // similar is a list of [id, id] pairs of notes with a lot of words in common.
@@ -19,8 +20,8 @@ export function buildGraph(notes, { byArea = false, similar = [] } = {}) {
     if (seen.has(key)) return;
     seen.add(key);
     edges.push({ a, b, kind });
-    a.degree++;
-    b.degree++;
+    // Only real links make a dot bigger.
+    if (kind === 'link') { a.degree++; b.degree++; }
   };
   for (const d of nodes) {
     for (const title of linksIn(d.note.body)) {
@@ -46,7 +47,10 @@ export function buildGraph(notes, { byArea = false, similar = [] } = {}) {
   // Colors follow each note's first area.
   const areaNames = [...new Set(real.flatMap(n => n.areas || []))].sort();
   const colorOf = new Map(areaNames.map((a, i) => [a, PALETTE[i % PALETTE.length]]));
-  for (const d of nodes) d.color = colorOf.get((d.note.areas || [])[0]) || '#9a9aa2';
+  for (const d of nodes) {
+    d.group = byArea ? (d.note.areas || [])[0] || null : null;
+    d.color = colorOf.get((d.note.areas || [])[0]) || '#9a9aa2';
+  }
   return { nodes, edges, legend: areaNames.map(a => ({ name: a, color: colorOf.get(a) })) };
 }
 
@@ -62,12 +66,18 @@ export function mountGraph(canvas, graph, onOpen) {
   let frame = 0;
 
   function place() {
-    // Start in a spiral so the first frames don't explode.
+    // Start in a spiral so the first frames don't explode. Notes in an area start
+    // around that area's own spot on a big ring.
+    const groups = [...new Set(nodes.map(d => d.group).filter(Boolean))];
+    const ring = 60 * Math.sqrt(nodes.length);
     nodes.forEach((d, i) => {
       if (d.x || d.y) return;
-      const r = 12 * Math.sqrt(i + 1), t = i * 2.4;
-      d.x = Math.cos(t) * r;
-      d.y = Math.sin(t) * r;
+      const g = groups.indexOf(d.group);
+      const ox = g < 0 ? 0 : Math.cos(g / groups.length * Math.PI * 2) * ring;
+      const oy = g < 0 ? 0 : Math.sin(g / groups.length * Math.PI * 2) * ring;
+      const r = 12 * Math.sqrt(i % 40 + 1), t = i * 2.4;
+      d.x = ox + Math.cos(t) * r;
+      d.y = oy + Math.sin(t) * r;
     });
   }
 
@@ -99,10 +109,23 @@ export function mountGraph(canvas, graph, onOpen) {
       e.a.vx += dx / dist * f; e.a.vy += dy / dist * f;
       e.b.vx -= dx / dist * f; e.b.vy -= dy / dist * f;
     }
+    // Notes in the same area drift toward that area's middle, so areas form clusters.
+    const centers = new Map();
+    for (const d of nodes) if (d.group) {
+      const c = centers.get(d.group) || { x: 0, y: 0, n: 0 };
+      c.x += d.x; c.y += d.y; c.n++;
+      centers.set(d.group, c);
+    }
+    for (const d of nodes) if (d.group) {
+      const c = centers.get(d.group);
+      d.vx += (c.x / c.n - d.x) * 0.08;
+      d.vy += (c.y / c.n - d.y) * 0.08;
+    }
     // A gentle pull to the middle keeps loose notes from drifting away.
     for (const d of nodes) {
-      d.vx -= d.x * 0.004;
-      d.vy -= d.y * 0.004;
+      const pull = d.group ? 0.0015 : 0.004;
+      d.vx -= d.x * pull;
+      d.vy -= d.y * pull;
       if (d === dragging) { d.vx = d.vy = 0; continue; }
       d.x += d.vx * heat;
       d.y += d.vy * heat;
@@ -290,14 +313,16 @@ export function mountGraph(canvas, graph, onOpen) {
     update(next) {
       // Keep positions of notes that were already on screen.
       const old = new Map(nodes.map(d => [d.id, d]));
+      const regroup = next.nodes.some(d => (old.get(d.id)?.group ?? null) !== d.group);
       for (const d of next.nodes) {
         const o = old.get(d.id);
-        if (o) { d.x = o.x; d.y = o.y; }
+        if (o && !regroup) { d.x = o.x; d.y = o.y; }
       }
       nodes = next.nodes;
       edges = next.edges;
       place();
-      heat = 0.6;
+      heat = regroup ? 1 : 0.6;
+      if (regroup) { for (let i = 0; i < 120; i++) step(); fit(); }
     },
     fit,
     stop() {
