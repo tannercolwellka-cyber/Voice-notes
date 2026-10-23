@@ -2,6 +2,7 @@ import { store, syncEnabled, titleFrom, pending, queue, flush } from './store.js
 import { speechSupported, startListening } from './speech.js';
 import * as lib from './library.js';
 import * as auto from './suggest.js';
+import { buildGraph, mountGraph } from './graph.js';
 
 const $ = id => document.getElementById(id);
 
@@ -164,6 +165,7 @@ async function refresh() {
     console.error(err);
   }
   render();
+  if (graph) graph.update(graphData());
 }
 
 $('search').addEventListener('input', render);
@@ -349,7 +351,12 @@ function openNote(n) {
 
 const panelOpen = () => !$('note-panel').hidden;
 
+let graph = null;          // the running graph, while it's on screen
+let fromGraph = false;     // Back from a note returns to the graph
+
 function openPanel() {
+  fromGraph = !$('graph-panel').hidden || (fromGraph && panelOpen());
+  hideGraph();
   $('capture').hidden = true;
   $('note-panel').hidden = false;
   closeSidebar();
@@ -359,6 +366,11 @@ function openPanel() {
 
 function closePanel() {
   $('note-panel').hidden = true;
+  if (fromGraph) {
+    fromGraph = false;
+    openId = null;
+    return openGraph();
+  }
   $('capture').hidden = false;
   $('undo-bar').hidden = true;
   openId = null;
@@ -384,7 +396,53 @@ function markActive() {
 $('open-sidebar').addEventListener('click', openSidebar);
 $('close-sidebar').addEventListener('click', closeSidebar);
 $('scrim').addEventListener('click', closeSidebar);
-$('go-record').addEventListener('click', () => { closePanel(); closeSidebar(); });
+$('go-record').addEventListener('click', () => {
+  fromGraph = false;
+  hideGraph();
+  closePanel();
+  closeSidebar();
+});
+
+// ---------- graph ----------
+
+function graphData() {
+  const g = buildGraph(notes, { byArea: $('graph-areas').checked });
+  $('graph-empty').hidden = g.edges.length > 0;
+  $('graph-legend').replaceChildren(...g.legend.map(({ name, color }) => {
+    const span = document.createElement('span');
+    span.innerHTML = '<i></i>';
+    span.querySelector('i').style.background = color;
+    span.append(name);
+    return span;
+  }));
+  return g;
+}
+
+function openGraph() {
+  $('capture').hidden = true;
+  $('note-panel').hidden = true;
+  $('undo-bar').hidden = true;
+  $('graph-panel').hidden = false;
+  closeSidebar();
+  markActive();
+  if (!graph) graph = mountGraph($('graph-canvas'), graphData(), n => openNote(n));
+  else graph.update(graphData());
+}
+
+function hideGraph() {
+  $('graph-panel').hidden = true;
+  graph?.stop();
+  graph = null;
+}
+
+$('go-graph').addEventListener('click', openGraph);
+$('graph-close').addEventListener('click', () => { fromGraph = false; hideGraph(); closePanel(); });
+$('graph-fit').addEventListener('click', () => graph?.fit());
+$('graph-areas').addEventListener('change', () => {
+  try { localStorage.setItem('voice-notes-graph-areas', $('graph-areas').checked ? '1' : ''); } catch {}
+  graph?.update(graphData());
+});
+try { $('graph-areas').checked = localStorage.getItem('voice-notes-graph-areas') === '1'; } catch {}
 
 function showView(n) {
   $('note-form').hidden = true;

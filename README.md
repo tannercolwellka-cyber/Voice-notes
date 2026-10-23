@@ -19,6 +19,7 @@ Steps 1 to 3 are done: voice capture, sync, a library with folders, `[[links]]`,
 | `app.js` | Buttons, the note list, search, editing |
 | `speech.js` | Turns your voice into text |
 | `library.js` | Markdown, `[[links]]`, backlinks, folders, import and export |
+| `graph.js` | The graph view: notes as dots, links as lines |
 | `suggest.js` | Automatic filing, areas and linking, by comparing words between notes |
 | `store.js` | Saves and loads notes, locally or in Supabase |
 | `config.js` | Your Supabase address and key |
@@ -47,6 +48,15 @@ Areas are sections that group notes by topic, like **Health**, **Cooking** or **
 - **From a note:** tap **Edit** and type areas into the **Areas** box, separated by commas. The area names show as chips under the note's title, and tapping one jumps to that area.
 - **Automatically:** new notes you record join every area they clearly fit, up to three, and the Undo bar covers that too.
 - **Obsidian:** areas export as Obsidian tags, and tags in imported Obsidian files come back in as areas.
+
+## Graph
+
+Tap **Graph** at the top of the sidebar to see all your notes as a web, like Obsidian's graph view. Each dot is a note, and each line is a `[[link]]` between two notes. Dots are colored by their first area, and notes with more links get bigger dots.
+
+- Drag the background to move around, and scroll or pinch to zoom. **Fit** brings everything back into view.
+- Drag a dot to pull it around. Point at or press a dot to highlight what it's connected to.
+- Tap a dot to open that note. **Back** returns you to the graph.
+- **Join notes by area** adds faint dashed lines between notes in the same area, so areas form clusters even without links.
 
 ## Automatic organizing
 

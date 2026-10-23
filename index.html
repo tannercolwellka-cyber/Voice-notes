@@ -36,9 +36,14 @@
         <button id="close-sidebar" class="icon only-phone" aria-label="Close menu">✕</button>
       </header>
 
-      <button id="go-record" class="side-record">
-        <span class="mini-dot"></span> Record a note
-      </button>
+      <div class="side-actions">
+        <button id="go-record" class="side-record">
+          <span class="mini-dot"></span> Record
+        </button>
+        <button id="go-graph" class="side-record">
+          <span class="mini-web" aria-hidden="true">◎</span> Graph
+        </button>
+      </div>
 
       <input id="search" type="search" placeholder="Search notes">
       <div class="views" role="tablist">
@@ -88,6 +93,22 @@
           <button type="submit">Save</button>
         </form>
         <p id="capture-count" class="meta"></p>
+      </section>
+
+      <!-- Graph: all notes as a web -->
+      <section id="graph-panel" class="graph-panel" hidden>
+        <div class="row graph-bar">
+          <button id="graph-close" class="secondary">← Back</button>
+          <label class="toggle"><input type="checkbox" id="graph-areas"> Join notes by area</label>
+          <span class="spacer"></span>
+          <button id="graph-fit" class="secondary">Fit</button>
+        </div>
+        <div class="graph-wrap">
+          <canvas id="graph-canvas" aria-label="Graph of your notes and the links between them"></canvas>
+          <p id="graph-empty" class="graph-empty" hidden>No links yet. Link notes with [[their title]], or turn on “Join notes by area”.</p>
+          <div id="graph-legend" class="legend"></div>
+        </div>
+        <p class="meta graph-help">Drag to move around, scroll or pinch to zoom, and tap a dot to open that note.</p>
       </section>
 
       <!-- One note: read it, or edit it -->

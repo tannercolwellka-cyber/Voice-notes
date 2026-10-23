@@ -100,6 +100,9 @@ input:focus, textarea:focus { outline: none; border-color: #3a3a42; }
   border: 1px solid var(--line);
 }
 .mini-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.side-actions { display: flex; gap: 8px; }
+.side-actions .side-record { flex: 1; }
+.mini-web { color: var(--link); font-size: 15px; line-height: 1; }
 
 .main { min-width: 0; padding: max(24px, env(safe-area-inset-top)) 32px 48px; }
 .scrim { display: none; }
@@ -273,6 +276,25 @@ input:focus, textarea:focus { outline: none; border-color: #3a3a42; }
 .area .find h4 { font-size: 12px; color: var(--muted); margin: 2px 0 4px; font-weight: 600; }
 .area .find li { cursor: default; }
 .area .find li button { padding: 2px 10px; font-size: 12px; }
+
+/* ---------- graph ---------- */
+
+.graph-panel { display: flex; flex-direction: column; gap: 10px; height: calc(100vh - 72px); height: calc(100dvh - 72px); }
+.graph-bar { flex-wrap: wrap; }
+.toggle { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); cursor: pointer; }
+.toggle input { width: auto; accent-color: var(--link); }
+.graph-wrap { position: relative; flex: 1; min-height: 300px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, #0d0f14 0%, #000 70%); }
+#graph-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.graph-empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; max-width: 300px;
+  text-align: center; color: var(--muted); font-size: 14px; pointer-events: none; }
+.legend { position: absolute; left: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 4px 10px; max-width: calc(100% - 20px);
+  font-size: 12px; color: var(--muted); background: rgb(0 0 0 / .6); border-radius: 8px; padding: 6px 8px; pointer-events: none; }
+.legend:empty { display: none; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.graph-help { text-align: center; }
+@media (max-width: 860px) { .graph-panel { height: calc(100dvh - 90px); } }
 
 /* ---------- note panel ---------- */
 
