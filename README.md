@@ -24,13 +24,41 @@ This is step 1 of the plan: capture and sync. Your library, the Apple Notes impo
 
 ## Try it on your PC
 
-You need [Python](https://www.python.org/downloads/) installed (tick "Add to PATH" when installing). In the project folder, run:
+This runs the app from your own computer, so you can see changes before they go live. You only do steps 1 to 3 once.
+
+**1. Install Python.** The app doesn't need Python itself. Python just comes with a tiny web server we can borrow.
+
+- Go to [python.org/downloads](https://www.python.org/downloads/) and click the yellow **Download Python** button.
+- Open the file you downloaded. On the first screen, **tick "Add python.exe to PATH"** at the bottom before clicking **Install Now**. Without that box ticked, Windows won't find the `python` command later.
+- To check it worked, open the Start menu, type `cmd`, open **Command Prompt**, type `python --version`, and press Enter. It should print something like `Python 3.13.1`.
+
+**2. Install Git.** Git copies the project from GitHub to your PC and sends your changes back.
+
+- Download it from [git-scm.com/download/win](https://git-scm.com/download/win) and run the installer. The default answer on every screen is fine.
+
+**3. Copy the project to your PC.** Open Command Prompt and run these two lines, pressing Enter after each:
 
 ```
+cd %USERPROFILE%\Documents
+git clone https://github.com/tannercolwellka-cyber/voice-notes
+```
+
+The first line moves you into your Documents folder. The second makes a `voice-notes` folder there with all the app files. GitHub may open a window asking you to sign in, because the repo is private.
+
+**4. Start the app.** Each time you want to run it, open Command Prompt and run:
+
+```
+cd %USERPROFILE%\Documents\voice-notes
 python -m http.server 8000
 ```
 
-Then open http://localhost:8000 in Edge or Chrome. Press Ctrl+C in the terminal to stop it.
+The first line moves into the project folder. The second starts the web server, which prints `Serving HTTP on :: port 8000`. Leave that window open, because closing it stops the app.
+
+**5. Open it.** In Edge or Chrome, go to http://localhost:8000. `localhost` means "this computer", and `8000` is the port number from the command above.
+
+**6. Stop it.** Click back in the Command Prompt window and press **Ctrl+C**.
+
+If you get the latest changes from GitHub (`git pull`, see below) and the page still looks old, press **Ctrl+Shift+R** to reload without the saved copy.
 
 ## Put it online (GitHub Pages)
 
