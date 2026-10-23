@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Voice Notes</title>
+  <meta name="theme-color" content="#14161a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Voice Notes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Sign-in screen (only shown when cloud sync is set up) -->
+  <section id="auth" class="screen" hidden>
+    <h1>Voice Notes</h1>
+    <form id="auth-form">
+      <input id="auth-email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" required>
+      <button type="submit">Sign in</button>
+      <button type="button" id="auth-signup" class="secondary">Create account</button>
+      <p id="auth-error" class="error"></p>
+    </form>
+  </section>
+
+  <!-- Main app -->
+  <section id="app" class="screen" hidden>
+    <header>
+      <h1>Voice Notes</h1>
+      <span id="sync-status" class="badge"></span>
+      <button id="sign-out" class="link" hidden>Sign out</button>
+    </header>
+
+    <div class="capture">
+      <button id="record" class="record" aria-label="Start recording">
+        <span class="dot"></span>
+      </button>
+      <p id="record-hint">Tap to record</p>
+      <div id="live" class="live" hidden></div>
+      <form id="type-form" class="type-form">
+        <textarea id="type-input" rows="2" placeholder="…or type a note"></textarea>
+        <button type="submit">Save</button>
+      </form>
+    </div>
+
+    <input id="search" type="search" placeholder="Search notes">
+    <ul id="notes" class="notes"></ul>
+  </section>
+
+  <!-- Single note view -->
+  <dialog id="note-dialog">
+    <form method="dialog" id="note-form">
+      <input id="note-title" placeholder="Title">
+      <textarea id="note-body" rows="12"></textarea>
+      <p id="note-meta" class="meta"></p>
+      <div class="row">
+        <button type="button" id="note-delete" class="danger">Delete</button>
+        <span class="spacer"></span>
+        <button value="cancel" class="secondary">Close</button>
+        <button type="button" id="note-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
